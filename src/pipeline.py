@@ -1,6 +1,6 @@
 import torch
 from PIL.Image import Image
-from diffusers import StableDiffusionXLPipeline
+from diffusers import StableDiffusionXLPipeline, AutoencoderTiny
 from sfast.compilers.diffusion_pipeline_compiler import (compile,
                                                          CompilationConfig)
 from pipelines.models import TextToImageRequest
@@ -13,7 +13,7 @@ def load_pipeline() -> StableDiffusionXLPipeline:
         torch_dtype=torch.float16,
         local_files_only=True,
     ).to("cuda")
-
+    pipeline.vae = AutoencoderTiny.from_pretrained("madebyollin/taesdxl", torch_dtype=torch.float16).to('cuda')
     config = CompilationConfig.Default()
     # xformers and Triton are suggested for achieving best performance.
     try:
@@ -30,7 +30,7 @@ def load_pipeline() -> StableDiffusionXLPipeline:
 
     pipeline = compile(pipeline, config)
     for _ in range(2):
-        pipeline(prompt="", num_inference_steps=10)
+        pipeline(prompt="", num_inference_steps=12)
 
     return pipeline
 
@@ -44,5 +44,5 @@ def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> I
         width=request.width,
         height=request.height,
         generator=generator,
-        num_inference_steps=10,
+        num_inference_steps=12,
     ).images[0]
