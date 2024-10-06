@@ -30,7 +30,7 @@ def load_pipeline() -> StableDiffusionXLPipeline:
 
     pipeline = compile(pipeline, config)
     for _ in range(2):
-        pipeline(prompt="", num_inference_steps=12)
+        pipeline(prompt="", num_inference_steps=15)
 
     return pipeline
 
