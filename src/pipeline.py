@@ -44,5 +44,5 @@ def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> I
         width=request.width,
         height=request.height,
         generator=generator,
-        num_inference_steps=12,
+        num_inference_steps=15,
     ).images[0]
