@@ -30,7 +30,7 @@ def load_pipeline() -> StableDiffusionXLPipeline:
 
     pipeline = compile(pipeline, config)
     for _ in range(2):
-        pipeline(prompt="", num_inference_steps=15)
+        pipeline(prompt="", num_inference_steps=14)
 
     return pipeline
 
@@ -44,5 +44,5 @@ def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> I
         width=request.width,
         height=request.height,
         generator=generator,
-        num_inference_steps=15,
+        num_inference_steps=14,
     ).images[0]
