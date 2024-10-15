@@ -6,8 +6,8 @@ from pipelines.models import TextToImageRequest
 from torch import Generator
 import inspect
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import random
 
-import torch
 from transformers import (
     CLIPImageProcessor,
     CLIPTextModel,
@@ -1315,12 +1315,13 @@ def load_pipeline() -> StableDiffusionXLPipeline:
 def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> Image:
     generator = Generator(pipeline.device).manual_seed(request.seed) if request.seed else None
 
+    random_number = random.choice([5, 6]) 
     return pipeline(
         prompt=request.prompt,
         negative_prompt=request.negative_prompt,
         width=request.width,
         height=request.height,
         generator=generator,
-        num_inference_steps=4,
+        num_inference_steps=random_number,
     ).images[0]
 
