@@ -1289,7 +1289,7 @@ def load_pipeline() -> StableDiffusionXLPipeline:
         local_files_only=True,
     )
     #pipeline.vae = AutoencoderTiny.from_pretrained("madebyollin/taesdxl", torch_dtype=torch.float16)
-    pipeline.scheduler = UniPCMultistepScheduler.from_config('./src',)
+    #pipeline.scheduler = UniPCMultistepScheduler.from_config('./src',)
     pipeline.to("cuda")
 
     config = CompilationConfig.Default()
@@ -1315,13 +1315,12 @@ def load_pipeline() -> StableDiffusionXLPipeline:
 def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> Image:
     generator = Generator(pipeline.device).manual_seed(request.seed) if request.seed else None
 
-    random_number = random.choice([5, 6]) 
     return pipeline(
         prompt=request.prompt,
         negative_prompt=request.negative_prompt,
         width=request.width,
         height=request.height,
         generator=generator,
-        num_inference_steps=random_number,
+        num_inference_steps=15,
     ).images[0]
 
