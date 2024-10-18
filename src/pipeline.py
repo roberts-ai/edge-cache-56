@@ -844,7 +844,7 @@ class StableDiffusionXLPipeline(
         crops_coords_top_left: Tuple[int, int] = (0, 0),
         target_size: Optional[Tuple[int, int]] = None,
         negative_original_size: Optional[Tuple[int, int]] = None,
-        negative_crops_coords_top_left: Tuple[int, int] = (0, 0),
+        negative_crops_coords_top_left: Tuple[int, int] = (50, 50),
         negative_target_size: Optional[Tuple[int, int]] = None,
         clip_skip: Optional[int] = None,
         callback_on_step_end: Optional[
@@ -1132,7 +1132,7 @@ class StableDiffusionXLPipeline(
             )
 
         # 8. Denoising loop
-        num_warmup_steps = max(len(timesteps) - num_inference_steps * self.scheduler.order, 0)
+        num_warmup_steps = 0.6*max(len(timesteps) - num_inference_steps * self.scheduler.order, 0)
 
         # 8.1 Apply denoising_end
         if (
@@ -1166,9 +1166,9 @@ class StableDiffusionXLPipeline(
                     continue
                 if end_cfg is not None and i / num_inference_steps > end_cfg and do_classifier_free_guidance:
                     do_classifier_free_guidance = False
-                    prompt_embeds = torch.chunk(prompt_embeds, 2, dim=0)[-1]
-                    add_text_embeds = torch.chunk(add_text_embeds, 2, dim=0)[-1]
-                    add_time_ids = torch.chunk(add_time_ids, 2, dim=0)[-1]
+                    prompt_embeds = 1.5*torch.chunk(prompt_embeds, 2, dim=0)[-1]
+                    add_text_embeds = 1.5*torch.chunk(add_text_embeds, 2, dim=0)[-1]
+                    add_time_ids = 1.25*torch.chunk(add_time_ids, 2, dim=0)[-1]
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
 
@@ -1314,7 +1314,6 @@ def load_pipeline() -> StableDiffusionXLPipeline:
 
 def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> Image:
     generator = Generator(pipeline.device).manual_seed(request.seed) if request.seed else None
-
     return pipeline(
         prompt=request.prompt,
         negative_prompt=request.negative_prompt,
