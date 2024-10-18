@@ -1307,7 +1307,7 @@ def load_pipeline() -> StableDiffusionXLPipeline:
     config.enable_cuda_graph = True
     pipeline = compile(pipeline, config)
     for _ in range(3):
-        pipeline(prompt="an astronaut on a horse", num_inference_steps=16, end_cfg=0.6)
+        pipeline(prompt="an astronaut on a horse", num_inference_steps=20, end_cfg=0.6)
 
     return pipeline
 
@@ -1321,7 +1321,10 @@ def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> I
         width=request.width,
         height=request.height,
         generator=generator,
-        end_cfg=0.6,
+        end_cfg=0.5,
         num_inference_steps=20,
+        guidance_scale = 5.2,
+        eta=1,
+        guidance_rescale = 0.0,
     ).images[0]
 
