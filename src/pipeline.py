@@ -1,13 +1,27 @@
 import torch
 from PIL.Image import Image
-from diffusers import UniPCMultistepScheduler
-from sfast.compilers.diffusion_pipeline_compiler import (compile, CompilationConfig)
 from pipelines.models import TextToImageRequest
 from torch import Generator
+
+
+# Copyright 2024 The HuggingFace Team. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import inspect
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-import random
 
+import torch
 from transformers import (
     CLIPImageProcessor,
     CLIPTextModel,
@@ -45,9 +59,6 @@ from diffusers.utils import (
 from diffusers.utils.torch_utils import randn_tensor
 from diffusers.pipelines.pipeline_utils import DiffusionPipeline, StableDiffusionMixin
 from diffusers.pipelines.stable_diffusion_xl.pipeline_output import StableDiffusionXLPipelineOutput
-torch._inductor.config.force_fuse_int_mm_with_mul = True
-torch._inductor.config.fx_graph_cache = True
-
 
 if is_invisible_watermark_available():
     from .watermark import StableDiffusionXLWatermarker
@@ -844,7 +855,7 @@ class StableDiffusionXLPipeline(
         crops_coords_top_left: Tuple[int, int] = (0, 0),
         target_size: Optional[Tuple[int, int]] = None,
         negative_original_size: Optional[Tuple[int, int]] = None,
-        negative_crops_coords_top_left: Tuple[int, int] = (50, 50),
+        negative_crops_coords_top_left: Tuple[int, int] = (0, 0),
         negative_target_size: Optional[Tuple[int, int]] = None,
         clip_skip: Optional[int] = None,
         callback_on_step_end: Optional[
@@ -1024,6 +1035,24 @@ class StableDiffusionXLPipeline(
         original_size = original_size or (height, width)
         target_size = target_size or (height, width)
 
+        # 1. Check inputs. Raise error if not correct
+        self.check_inputs(
+            prompt,
+            prompt_2,
+            height,
+            width,
+            callback_steps,
+            negative_prompt,
+            negative_prompt_2,
+            prompt_embeds,
+            negative_prompt_embeds,
+            pooled_prompt_embeds,
+            negative_pooled_prompt_embeds,
+            ip_adapter_image,
+            ip_adapter_image_embeds,
+            callback_on_step_end_tensor_inputs,
+        )
+
         self._guidance_scale = guidance_scale
         self._guidance_rescale = guidance_rescale
         self._clip_skip = clip_skip
@@ -1132,7 +1161,7 @@ class StableDiffusionXLPipeline(
             )
 
         # 8. Denoising loop
-        num_warmup_steps = 0.6*max(len(timesteps) - num_inference_steps * self.scheduler.order, 0)
+        num_warmup_steps = max(len(timesteps) - num_inference_steps * self.scheduler.order, 0)
 
         # 8.1 Apply denoising_end
         if (
@@ -1281,35 +1310,31 @@ class StableDiffusionXLPipeline(
 
         return StableDiffusionXLPipelineOutput(images=image)
 
-
-def load_pipeline() -> StableDiffusionXLPipeline:
-    pipeline = StableDiffusionXLPipeline.from_pretrained(
-        "./models/newdream-sdxl-20",
-        torch_dtype=torch.float16,
-        local_files_only=True,
-    )
-    #pipeline.vae = AutoencoderTiny.from_pretrained("madebyollin/taesdxl", torch_dtype=torch.float16)
-    #pipeline.scheduler = UniPCMultistepScheduler.from_config('./src',)
-    pipeline.to("cuda")
-
-    config = CompilationConfig.Default()
-    # xformers and Triton are suggested for achieving best performance.
+def max_pixel_filter(image: Image) -> Image:
     try:
-        import xformers
-        config.enable_xformers = True
-    except ImportError:
-        print('xformers not installed, skip')
-    try:
-        import triton
-        config.enable_triton = True
-    except ImportError:
-        print('Triton not installed, skip')
-    config.enable_cuda_graph = True
-    pipeline = compile(pipeline, config)
+        img_array = np.array(image)
+        max_val = img_array.max()
+        img_array[img_array == max_val] -= 1
+        filtered_image = Image.fromarray(img_array)
+        return filtered_image
+    except:
+        return image
+
+from onediffx import compile_pipe
+
+def load_pipeline(pipeline=None) -> StableDiffusionXLPipeline:
+    if not pipeline:
+        pipeline = StableDiffusionXLPipeline.from_pretrained(
+            "./models/newdream-sdxl-20",
+            torch_dtype=torch.float16,
+            local_files_only=True,
+        ).to("cuda")
+    pipeline = compile_pipe(pipeline)
     for _ in range(3):
-        pipeline(prompt="an astronaut on a horse", num_inference_steps=20, end_cfg=0.6)
+        pipeline(prompt="Hebban olla vogala", num_inference_steps=20, end_cfg=0.7)
 
     return pipeline
+
 
 
 def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> Image:
@@ -1322,8 +1347,17 @@ def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> I
         generator=generator,
         end_cfg=0.55,
         num_inference_steps=20,
-        guidance_scale = 5.2,
+        guidance_scale = 5.0,
         eta=1,
         guidance_rescale = 0.0,
     ).images[0]
-
+    
+    return pipeline(
+        prompt=request.prompt,
+        negative_prompt=request.negative_prompt,
+        width=request.width,
+        height=request.height,
+        generator=generator,
+        end_cfg=0.7,
+        num_inference_steps=18,
+    ).images[0]
