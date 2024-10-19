@@ -1312,9 +1312,16 @@ class StableDiffusionXLPipeline(
 
 def max_pixel_filter(image: Image) -> Image:
     try:
+        # Convert the image to a numpy array
         img_array = np.array(image)
+
+        # Find the maximum pixel value in the image
         max_val = img_array.max()
+
+        # Reduce the maximum value to 1
         img_array[img_array == max_val] -= 1
+
+        # Convert the numpy array back to an image
         filtered_image = Image.fromarray(img_array)
         return filtered_image
     except:
@@ -1331,7 +1338,7 @@ def load_pipeline(pipeline=None) -> StableDiffusionXLPipeline:
         ).to("cuda")
     pipeline = compile_pipe(pipeline)
     for _ in range(3):
-        pipeline(prompt="Hebban olla vogala", num_inference_steps=20, end_cfg=0.7)
+        pipeline(prompt="An astronaut on a horse", num_inference_steps=20, end_cfg=0.7)
 
     return pipeline
 
