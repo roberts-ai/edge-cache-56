@@ -1319,7 +1319,7 @@ def max_pixel_filter(image: Image) -> Image:
         max_val = img_array.max()
 
         # Reduce the maximum value to 1
-        img_array[img_array == max_val] -= 1
+        img_array[img_array == max_val] = 1
 
         # Convert the numpy array back to an image
         filtered_image = Image.fromarray(img_array)
@@ -1352,7 +1352,7 @@ def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> I
         width=request.width,
         height=request.height,
         generator=generator,
-        end_cfg=0.6,
+        end_cfg=0.65,
         num_inference_steps=20,
         guidance_scale = 5.0,
         eta=1,
