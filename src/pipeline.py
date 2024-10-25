@@ -1346,16 +1346,18 @@ def load_pipeline(pipeline=None) -> StableDiffusionXLPipeline:
 
 def infer(request: TextToImageRequest, pipeline: StableDiffusionXLPipeline) -> Image:
     generator = Generator(pipeline.device).manual_seed(request.seed) if request.seed else None
-    return pipeline(
-        prompt=request.prompt,
-        negative_prompt=request.negative_prompt,
-        width=request.width,
-        height=request.height,
-        generator=generator,
-        end_cfg=0.4,
-        num_inference_steps=20,
-        guidance_scale = 5.0,
-        eta=1.5,
-        guidance_rescale = 0.0,
-    ).images[0]
+    with torch.cuda.amp.autocast():
+        image = pipeline(
+            prompt=request.prompt,
+            negative_prompt=request.negative_prompt,
+            width=request.width,
+            height=request.height,
+            generator=generator,
+            end_cfg=0.5,
+            num_inference_steps=20,
+            guidance_scale = 5.0,
+            eta=1,
+            guidance_rescale = 0.0,
+        ).images[0]
+    return image
     
