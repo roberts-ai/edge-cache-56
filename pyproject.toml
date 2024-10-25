@@ -23,6 +23,7 @@ dependencies = [
     "edge-maxxing-pipelines @ git+https://github.com/womboai/edge-maxxing#subdirectory=pipelines",
     "huggingface-hub==0.25.2",
     "oneflow",
+    "setuptools>=75.2.0",
 ]
 
 [tool.uv.sources]
